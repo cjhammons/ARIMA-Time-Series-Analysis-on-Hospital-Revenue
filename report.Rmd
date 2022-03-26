@@ -1,0 +1,134 @@
+---
+title: "ARIMA Forecast"
+author: "Curtis Hammons"
+date: "3/16/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(forecast)
+library(astsa)
+```
+
+# Research Question
+
+Our objective in this analysis is to identify trends in revenue and forecast future revenue. Our goal is to forecast the upcoming half year's revenue.
+
+# Method Justification
+
+We'll be using seasonal Auto-Regressive Integrated Moving Average (ARIMA) to make our forecast. ARIMA models make predictions based on a given time series.
+
+# Data Preparation 
+
+Let's import and inspect our data.
+```{r}
+df = read.csv("data/medical_time_series.csv")
+head(df)
+```
+Our dataset is the daily revenue over the previous two years of operation, with each datapoint beint a single day. Let's look at the plot of the data.
+```{r}
+df %>% ggplot(aes(x=Day, y=Revenue)) + 
+  geom_point() + 
+  geom_line() + 
+  ggtitle("Daily Revenue over time")
+```
+
+We can see from the graph that the data are not stationary and are. There is an obvious upward trend in the first year. This will by taking one difference of the raw data. We also see Seasonal flucuations in the data.
+
+We'll first convert our revenue data into a TimeSeries object. Then We'll take the difference and plot it.
+
+```{r}
+series = ts(df$Revenue, frequency = 365, start= c(2016,1), end = c(2018,1))
+
+df$Revenue_diff = c(0, diff(series))
+
+df %>% ggplot(aes(x=Day, y=Revenue_diff)) + 
+  geom_point() + 
+  geom_line() + 
+  ggtitle("Differenced Daily Revenue over time")
+
+write_csv2(df, "data/time_series_diff.csv")
+```
+As we can see the data is now stationary. The Seasonality and early trend has been removed. Now we'll split the data into training and test sets.
+
+```{r}
+# we're using an 80/20 split
+train = ts(df$Revenue, frequency = 365,start = c(2016,1), end=c(2017,220))
+test = ts(df$Revenue, frequency = 365,start = c(2017,221), end=c(2018,1))
+```
+
+
+# Model and Analysis
+
+## Finding a model
+
+We'll use ``auto.arima`` to select the best p, q, d, P, and Q parameters for our model. We'll specify a D of 1.
+
+```{r}
+#the auto.arima function automatically applies the Difference so we pass the raw data
+train_model = auto.arima(train, D=1) 
+summary(train_model)
+```
+The model selected for the test set has the following parameters:
+
+- p = 1
+- d = 1
+- q = 2
+- P = 0
+- D = 1
+- Q = 0
+
+Now we'll perform a forecast on the test set and compare it to the actual data
+
+```{r include=False}
+
+# fore = forecast(train_model, h=148)
+# 
+# # We'll scale the axes so the graphs show the same scale of data
+# # Since we're concerned with the forecast we'll limit the x-axis to later in the series
+# x_lim = c(2017.6, 2018.0)
+# y_lim = c(-10,50)
+# plot(fore, xlim=x_lim, ylim=y_lim, main='Forecasted Test Data')
+# plot(series,  xlim=x_lim, ylim=y_lim, main='Actual Data')
+
+```
+```{r}
+sarima(train, p=1, d=1, q=2, P=0, D=1, Q=0, S=1)
+sarima.for(train, n.ahead=146, p=1, d=1, q=2, P=0, D=1, Q=0, S=1)
+x_lim = c(2017.3, 2018.0)
+y_lim = c(0,40)
+plot(series, xlim=x_lim, ylim=y_lim, main='Actual Data')
+
+```
+
+## Model
+As we can see our forecast is more or less in line with our actual data. We'll use this model for a main forecast. We'll use the parameters from ``auto.arima`` to build a seasonal ARIMA model with ``sarima`` and predict an interval of 132 days, or roughly six months.
+
+```{r}
+sarima(df$Revenue, p=1, d=1, q=2, P=0, D=1, Q=0, S=1)
+sarima.for(df$Revenue, n.ahead=182, p=1, d=1, q=2, P=0, D=1, Q=0, S=1)
+
+```
+
+Our forecast predicts a general increase of revenue over the upcoming year. 
+
+# Summary
+
+We selected our ARIMA model by first using ``auto.arima`` to find the best parameters. We then tested the parameters against real data using a train/test split and concluded the parameters could be used. We then applied the parameters to a seasonal ARIMA model using the full data to predict the next six months of revenue. We chose six months because it is a quarter the size of the given data, a reasonable interval to test over.
+
+Since the company is projected to make a profit it is recommended that the budget is adjusted accordingly. This may be a good time to shore up areas of the company that need investment since we know there will be income to spare.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
