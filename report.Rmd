@@ -21,6 +21,10 @@ Our objective in this analysis is to identify trends in revenue and forecast fut
 
 We'll be using seasonal Auto-Regressive Integrated Moving Average (ARIMA) to make our forecast. ARIMA models make predictions based on a given time series.
 
+## Assumptions
+
+Time series analysis assumes that adjacent data points are independent and identically distributed[1]. That is, they are not directly correlated and they follow some pattern of seasonality.
+
 # Data Preparation 
 
 Let's import and inspect our data.
@@ -113,6 +117,7 @@ sarima.for(df$Revenue, n.ahead=182, p=1, d=1, q=2, P=0, D=1, Q=0, S=1)
 
 ```
 
+
 Our forecast predicts a general increase of revenue over the upcoming year. 
 
 # Summary
@@ -121,7 +126,9 @@ We selected our ARIMA model by first using ``auto.arima`` to find the best param
 
 Since the company is projected to make a profit it is recommended that the budget is adjusted accordingly. This may be a good time to shore up areas of the company that need investment since we know there will be income to spare.
 
+# Bilbliography
 
+1. Priya Pedamkar. (2022, Marth 28). *Time Series Analysis*. https://www.educba.com/time-series-analysis/
 
 
 
